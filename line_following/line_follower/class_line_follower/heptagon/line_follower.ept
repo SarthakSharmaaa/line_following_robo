@@ -1,0 +1,174 @@
+const kp: int = 1
+const ki: int = 100
+const kd: int = 10000
+node pid(sen0, sen1, sen2, sen3, sen4: int) returns (v_l, v_r:int)
+var error,i,p,d,temp,pid:int;
+let
+ 
+error = sen1 + sen0-sen3-sen4;
+p = error;
+i = 0 -> (pre(i) + error);
+d = error - (0 -> pre(error));
+temp = (p) + (i/100) + (d/10000);
+pid = if (temp < 0) then -20 else 20;
+ 
+  v_l = if(pid = 0) then 50 else (30 - pid);
+  v_r = if(pid = 0) then 50 else (30 + pid);
+        
+tel
+
+node cpid(sen0,sen1,sen2,sen3,sen4:int) returns (pid:int);
+var e, i, d:int;
+let
+    e=sen0+sen1+sen3+sen4-3200;
+    i=0->pre(i)+e;
+    d=e-(0->pre(e));
+    pid= (kp * e) +( ki * i) + (kd * d);
+tel
+
+node left(dir,sen0,sen1,sen2,sen3,sen4:int) returns (l:int)
+var d: int^6;
+let
+    d=[0, 40, 40-cpid(sen0,sen1,sen2,sen3,sen4), 40+cpid(sen0,sen1,sen2,sen3,sen4), 40, 30];
+    l = d.[dir-10] default 0;
+tel
+
+node right(dir,sen0,sen1,sen2,sen3,sen4: int) returns (r:int)
+var d:int^6;
+let
+    d=[0, 40, 40+cpid(sen0,sen1,sen2,sen3,sen4), 40-cpid(sen0,sen1,sen2,sen3,sen4), 40, 30];
+    r= d.[dir-10] default 0;
+tel
+
+	
+node main(sen0, sen1, sen2, sen3, sen4, ir_left, ir_right:int; sec:bool) returns (v_l, v_r,dir:int)
+var sen:int^5;
+last count:int = 0; 
+let
+automaton
+state White
+ 
+var l, r,sum : int;
+do
+	sen=[sen0, sen1, sen2, sen3, sen4];
+    sum=sen0 + sen1 + sen2 + sen3 + sen4;
+    dir = if sen0 > 800 then 14 else if sen4 > 800 then 15 else if sum > 4000 then 10 else if sen1 > 800 then 12 else if sen3 > 800 then 13 else 11;    
+    l=left(dir,sen0,sen1,sen2,sen3,sen4);
+    r=right(dir,sen0,sen1,sen2,sen3,sen4);
+    v_l = if (l>50) then 50 else if (l<0) then 0 else l;
+    v_r = if (r>50) then 50 else if (r<0) then 0 else r;
+    unless (sen0>800 and sen4>800 and sen2<800) then Black
+state Black
+
+do sen=[sen0, sen1, sen2, sen3, sen4];
+        automaton
+       state Straight
+       do 
+       	dir = if(sen0<550) then 3 else if (sen4<550) then 4 else 1;
+       	v_l= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       	v_r= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       unless (sen[1]<550 or sen[3]<550) then Pid | (sen[1]<800 and sen[2]<800 and sen[3]<800 and sen[0]<800 and sen[4]<800) then Junction
+        
+        state Pid
+        do
+        dir = 2;
+        (v_l,v_r) = pid(sen[0], sen[1], sen[2], sen[3], sen[4]);
+        unless (sen[1]<800 and sen[2]<800 and sen[3]<800 and sen[0]<800 and sen[4]<800) then Junction
+        | (sen0<550 or sen4<550) then Straight
+        
+        state Junctionpid
+        do
+        dir = 2;
+        (v_l,v_r) = pid(sen[0], sen[1], sen[2], sen[3], sen[4]);
+        unless (sen[0]>800 and sen[4]>800 and sen[2]<800) then Pid
+       
+        
+ 	
+        state Junction
+        do
+        dir = 0;
+        	v_l=0; v_r=0; count= (last count) +1;
+        until (count>=5) then StopTemp
+        | true then Junctionturn
+        
+        state Junctionturn
+        do
+        	dir =if(count=2) then 4 else 3;
+        	v_l=100; v_r=100;
+        unless not (sen[1]<800 and sen[2]<800 and sen[3]<800 and (sen[0]<800 or sen[4]<800)) then Junctionpid
+    state StopTemp
+    	var time:int;
+    	do
+    	dir=0;
+    	v_l=0;
+    	v_r=0;
+    	time=3->if(sec) then pre(time)-1 else pre(time);
+    	until(time=0) then DoParking
+    	
+    
+    	state DoParking
+    	var last cntl: int=0; last cntr: int=0; 
+    	do 
+    	automaton 
+    	state Startpark
+    	var time: int;
+    	do time=4->if(sec) then pre(time)-1 else pre(time);
+    	dir = if(sen0<550) then 3 else if (sen4<550) then 4 else 1;
+       	v_l= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       	v_r= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       	cntl = (last cntl)+ (if(ir_left=0) then 1 else 0);
+        cntr = (last cntr)+ (if(ir_right=0) then 1 else 0);
+       	until(time=0) then Check 
+       	
+       state Check 
+       do 
+       		dir = if(sen0<550) then 3 else if (sen4<550) then 4 else 1;
+       		v_l= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       		v_r= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       	until true then Inter
+       	
+       	
+       	
+       	state Inter 
+       	var time:int;
+       	do 
+       	v_l=0; v_r=0; dir=0;
+       	time= 2->if(sec) then pre(time)-1 else pre(time);
+       	until (cntl=0 and cntr=0) then Parkleft | (cntl=0) then Parkleft | (cntr=0) then Parkright | true then Reset
+       	
+       	
+       	state Reset
+        do
+        	
+        	dir = if(sen0<550) then 3 else if (sen4<550) then 4 else 1;
+       		v_l= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       		v_r= if(sen0<550) then 100 else if (sen4<550) then 100 else 60;
+       		cntl=0;
+       		cntr=0;
+       	until true then Startpark
+       	
+       	state Parkright
+        var time:int;
+        do
+        v_l=30; v_r=70; dir=5;
+        time= 3->if(sec) then pre(time)-1 else pre(time);
+        until (time=0) then Parked
+        
+        state Parkleft
+        var time:int;
+        do
+        v_l=70; v_r=30; dir=6;
+        time= 3->if(sec) then pre(time)-1 else pre(time);
+        until (time=0) then Parked
+        
+        state Parked
+        do
+        v_l=0; v_r=0; dir=0;
+        	
+        
+	end
+        end
+        end
+tel
+
+        
